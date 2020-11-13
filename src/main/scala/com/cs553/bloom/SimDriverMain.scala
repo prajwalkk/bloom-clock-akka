@@ -12,7 +12,7 @@ import com.cs553.bloom.ProcessActor.{SendMessage, ShowInternals}
 * Date: 09-Nov-20
 *
 */
-object SimDriverMain extends App {
+object SimDriverMain extends App  {
 
   object Main {
     def apply(n: Int): Behavior[NotUsed] = {
@@ -21,13 +21,16 @@ object SimDriverMain extends App {
         val guardActor = context.spawn(GuardActor(4), "guard")
         val processActorsRef = (0 until n).map(i => context.spawn(ProcessActor(n, i, guardActor), s"process_$i"))
         // TODO Debug
-        processActorsRef(0) ! SendMessage(processActorsRef(1), 2)
-        processActorsRef(0) ! SendMessage(processActorsRef(1), 2)
-        processActorsRef(1) ! SendMessage(processActorsRef(0), 2)
-        Thread.sleep(10000)
+        processActorsRef(0) ! SendMessage(processActorsRef(1))
+        processActorsRef.foreach(act => act ! ShowInternals)
+        processActorsRef(0) ! SendMessage(processActorsRef(1))
+        processActorsRef.foreach(act => act ! ShowInternals)
+        processActorsRef(1) ! SendMessage(processActorsRef(0))
+        Thread.sleep(15000)
+        context.log.info("=========================================================================")
         processActorsRef(0) ! ShowInternals
         processActorsRef(1) ! ShowInternals
-        Behaviors.same
+        Behaviors.stopped
       }
     }
 
@@ -35,7 +38,7 @@ object SimDriverMain extends App {
   }
 
 
-  ActorSystem(Main(2), "Demo")
+  ActorSystem(Main(20), "Demo")
 
 
 }

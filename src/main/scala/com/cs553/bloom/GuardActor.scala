@@ -49,7 +49,6 @@ object GuardActor {
           gsnCounter(newGsn, maxVal)
         }
 
-
       }
     }
   }
