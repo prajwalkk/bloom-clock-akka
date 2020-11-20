@@ -1,6 +1,6 @@
 package com.cs553.bloom
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.cs553.bloom.SimMain.MainCommand
 

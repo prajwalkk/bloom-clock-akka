@@ -1,14 +1,9 @@
 package com.cs553.bloom
 
 import akka.NotUsed
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.{ActorRef, Behavior, Scheduler}
-import akka.actor.typed.internal.adapter.ActorRefFactoryAdapter
+import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import com.cs553.bloom.ProcessActor.{ExecuteSomething, ShowInternals}
 import com.cs553.bloom.SimMain.Start
-
-import scala.concurrent.duration.DurationInt
 
 /*
 *
