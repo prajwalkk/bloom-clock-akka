@@ -6,7 +6,7 @@ package com.cs553.bloom
 * Date: 10-Nov-20
 *
 */
-class ProcessClasses {
+object ProcessClasses {
 
   final case class Process(pid: Int)
 }

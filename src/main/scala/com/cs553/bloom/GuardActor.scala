@@ -35,21 +35,25 @@ object GuardActor {
   }
 
   private def gsnCounter(gsn: Int, maxVal: Int): Behavior[Command] = {
-    Behaviors.receive { (context, message) =>
-      message match {
+    Behaviors.receiveMessage {
 
-        case IncrementAndReplySender(replyTo) => {
-          val newGsn = getNewGsn(gsn, 1000)
-          replyTo ! SendResponse(GsnValue(newGsn))
-          gsnCounter(newGsn, maxVal)
-        }
-        case IncrementAndReplyReceiver(replyTo) => {
-          val newGsn = getNewGsn(gsn, 1000)
-          replyTo ! RecvResponse(GsnValue(newGsn))
-          gsnCounter(newGsn, maxVal)
-        }
-
+      case IncrementAndReplySender(replyTo) => {
+        val newGsn = getNewGsn(gsn, 1000)
+        replyTo ! SendResponse(GsnValue(newGsn))
+        gsnCounter(newGsn, maxVal)
       }
+      case IncrementAndReplyReceiver(replyTo) => {
+        val newGsn = getNewGsn(gsn, 1000)
+        replyTo ! RecvResponse(GsnValue(newGsn))
+        gsnCounter(newGsn, maxVal)
+      }
+
+      case IncrementAndReplyInternal(replyTo) => {
+        val newGsn = getNewGsn(gsn, 1000)
+        replyTo ! InternalResponse(GsnValue(newGsn))
+        gsnCounter(newGsn, maxVal)
+      }
+
     }
   }
 
