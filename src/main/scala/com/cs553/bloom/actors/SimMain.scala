@@ -1,8 +1,8 @@
-package com.cs553.bloom
+package com.cs553.bloom.actors
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.cs553.bloom.SimMain.MainCommand
+import SimMain.MainCommand
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 

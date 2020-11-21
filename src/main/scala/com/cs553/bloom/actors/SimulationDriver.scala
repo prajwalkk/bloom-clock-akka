@@ -1,9 +1,10 @@
-package com.cs553.bloom
+package com.cs553.bloom.actors
 
 import akka.NotUsed
 import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
-import com.cs553.bloom.SimMain.Start
+import SimMain.Start
+import com.cs553.bloom.utils.ApplicationConstants
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Await

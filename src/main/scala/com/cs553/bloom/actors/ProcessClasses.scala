@@ -1,4 +1,4 @@
-package com.cs553.bloom
+package com.cs553.bloom.actors
 
 /*
 *

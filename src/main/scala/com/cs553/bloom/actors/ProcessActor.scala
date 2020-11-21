@@ -1,10 +1,10 @@
-package com.cs553.bloom
+package com.cs553.bloom.actors
 
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
-import com.cs553.bloom.ApplicationConstants._
+import com.cs553.bloom.utils.ApplicationConstants._
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable.TreeMap

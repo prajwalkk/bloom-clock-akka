@@ -1,4 +1,4 @@
-package com.cs553.bloom
+package com.cs553.bloom.utils
 
 import com.typesafe.config.{Config, ConfigFactory}
 
