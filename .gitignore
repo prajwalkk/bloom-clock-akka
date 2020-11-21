@@ -9,4 +9,5 @@ target/
 
 .metals
 .bloop
+*.csv
 

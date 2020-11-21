@@ -9,4 +9,5 @@ package com.cs553.bloom
 object ProcessClasses {
 
   final case class Process(pid: Int)
+
 }

@@ -19,9 +19,10 @@ object SimMain {
   def apply(n: Int): Behavior[MainCommand] = {
 
     Behaviors.setup { ctx =>
-      val guardActor = ctx.spawn(GuardActor(4), "guard")
-      val processActorsRef = (0 until n).map(i => ctx.spawn(ProcessActor(n, i, guardActor), s"process_$i"))
-      Thread.sleep(10000)
+      val guardActor = ctx.spawn(GuardActor(), "guard")
+      val writerActor = ctx.spawn(LogWriter(), "writer")
+      val processActorsRef = (0 until n).map(i => ctx.spawn(ProcessActor(n, i, guardActor, writerActor), s"process_$i"))
+      Thread.sleep(15000)
       processActorsRef.foreach(p => p ! ProcessActor.InitProcess)
       new SimMain(ctx, n, guardActor, processActorsRef.toList).idle(5.millis)
     }
@@ -29,9 +30,13 @@ object SimMain {
 
   // Protocols
   sealed trait MainCommand
+
   final case class Stop(messages: String) extends MainCommand
+
   final case object Start extends MainCommand
+
   final case object Begin extends MainCommand
+
   final case object TimeOut extends MainCommand
 
 
@@ -49,8 +54,8 @@ class SimMain(ctx: ActorContext[MainCommand],
       timers.startSingleTimer(Begin, TimeOut, duration)
       ctx.log.debug("Begin wait done")
       active()
-      }
     }
+  }
 
   private def active(): Behavior[MainCommand] = {
     import ProcessActor._
@@ -58,8 +63,8 @@ class SimMain(ctx: ActorContext[MainCommand],
       case Start | TimeOut =>
         ctx.log.debug("timeout came")
         processRef.foreach(p => p ! ExecuteSomething)
-        processRef.foreach(act => act ! ShowInternals)
-        idle(5.seconds)
+        //processRef.foreach(act => act ! ShowInternals)
+        idle(15.millis)
     }
   }
 

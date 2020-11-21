@@ -10,52 +10,48 @@ import akka.actor.typed.{ActorRef, Behavior}
 *
 */
 object GuardActor {
+
   import ProcessActor._
-  sealed trait Command
-  final case class IncrementAndReplySender(replyTo: ActorRef[ProcessActor.ProcessMessages]) extends Command
-  final case class IncrementAndReplyReceiver(replyTo: ActorRef[ProcessActor.ProcessMessages]) extends Command
-  final case class IncrementAndReplyInternal(replyTo: ActorRef[ProcessActor.ProcessMessages]) extends Command
 
-  case object Increment extends Command
+  def apply(): Behavior[Command] =
+    gsnCounter(0)
 
-
-  def apply(maxVal: Int): Behavior[Command] =
-    gsnCounter(0, maxVal)
-
-  def getNewGsn(oldGsn:Int, maxVal: Int): Int = {
-    val newGsn = oldGsn + 1
-    if (newGsn > maxVal) {
-      // TODO:
-      0
-    }
-    else {
-      // TODO: reply to the actor requesting GSN
-      oldGsn + 1
-    }
+  def getNewGsn(oldGsn: Int): Int = {
+    oldGsn + 1
   }
 
-  private def gsnCounter(gsn: Int, maxVal: Int): Behavior[Command] = {
+  private def gsnCounter(gsn: Int): Behavior[Command] = {
     Behaviors.receiveMessage {
 
       case IncrementAndReplySender(replyTo) => {
-        val newGsn = getNewGsn(gsn, 1000)
+        val newGsn = getNewGsn(gsn)
         replyTo ! SendResponse(GsnValue(newGsn))
-        gsnCounter(newGsn, maxVal)
+        gsnCounter(newGsn)
       }
       case IncrementAndReplyReceiver(replyTo) => {
-        val newGsn = getNewGsn(gsn, 1000)
+        val newGsn = getNewGsn(gsn)
         replyTo ! RecvResponse(GsnValue(newGsn))
-        gsnCounter(newGsn, maxVal)
+        gsnCounter(newGsn)
       }
 
       case IncrementAndReplyInternal(replyTo) => {
-        val newGsn = getNewGsn(gsn, 1000)
+        val newGsn = getNewGsn(gsn)
         replyTo ! InternalResponse(GsnValue(newGsn))
-        gsnCounter(newGsn, maxVal)
+        gsnCounter(newGsn)
       }
 
     }
   }
+
+  sealed trait Command
+
+  final case class IncrementAndReplySender(replyTo: ActorRef[ProcessActor.ProcessMessages]) extends Command
+
+  final case class IncrementAndReplyReceiver(replyTo: ActorRef[ProcessActor.ProcessMessages]) extends Command
+
+  final case class IncrementAndReplyInternal(replyTo: ActorRef[ProcessActor.ProcessMessages]) extends Command
+
+  case object Increment extends Command
 
 
 }
