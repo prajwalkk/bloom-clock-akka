@@ -1,6 +1,6 @@
 package com.cs553.bloom.utils
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 
 /*
 *
@@ -10,9 +10,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 */
 object ApplicationConstants {
 
-  val config: Config = ConfigFactory.load("constants.conf")
-  val fileName: String = config.getString("FileName")
-  val N: Int = config.getInt("numProcesses")
+
   val RULE_1 = 1
   val RULE_2 = 2
   val INTERNAL_EVENT = 1
@@ -22,8 +20,8 @@ object ApplicationConstants {
   val SEED_2 = 211
   val SEED_3 = 120
   val SEED_4 = 25
-  val K: Int = config.getInt("k")
-  val BLOOM_CLOCK_LENGTH_RATIO: Double = config.getDouble("m")
+
+  val RUN_NAME: String = ConfigFactory.load("constants.conf").getString("run")
 
 
 }

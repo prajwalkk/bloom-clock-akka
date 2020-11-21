@@ -1,5 +1,8 @@
 package com.cs553.bloom.actors
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import SimMain.MainCommand
@@ -16,14 +19,18 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object SimMain {
 
-  def apply(n: Int): Behavior[MainCommand] = {
+  def apply(n: Int, k: Int, m: Int, fileName: String): Behavior[MainCommand] = {
 
     Behaviors.setup { ctx =>
       val guardActor = ctx.spawn(GuardActor(), "guard")
-      val writerActor = ctx.spawn(LogWriter(), "writer")
-      val processActorsRef = (0 until n).map(i => ctx.spawn(ProcessActor(n, i, guardActor, writerActor), s"process_$i"))
+      val writerActor = ctx.spawn(LogWriter(n, k, m, fileName), "writer")
+      writerActor ! LogWriter.InitFile
+      Thread.sleep(5000)
+      writerActor ! LogWriter.WriteToFile("GSN; i; x; VC; BC; TYPE\n")
+      val processActorsRef = (0 until n).map(i => ctx.spawn(ProcessActor(n, k, m, i, guardActor, writerActor), s"process_$i"))
       Thread.sleep(15000)
       processActorsRef.foreach(p => p ! ProcessActor.InitProcess)
+      Thread.sleep(15000)
       new SimMain(ctx, n, guardActor, processActorsRef.toList).idle(5.millis)
     }
   }

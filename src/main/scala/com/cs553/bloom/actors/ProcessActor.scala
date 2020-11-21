@@ -20,20 +20,26 @@ import scala.util.{Failure, Random, Success}
 */
 object ProcessActor extends LazyLogging {
 
-  val probabilities: Map[Double, String] = TreeMap(0.9 -> "None", 0.00 -> "Send", 0.10 -> "Internal")
+  val probabilities: Map[Double, String] = TreeMap(0.4 -> "None", 0.9 -> "Send", 0.0 -> "Internal")
+  val probabilitiesNormalized: Map[Double, String] = probabilities.map { case (k, v) =>
+    k / probabilities.keys.sum.toDouble -> v
+  }
+  val finalProbabilities: Map[Double, String] = TreeMap(probabilitiesNormalized.toArray:_*)
   val ProcessKey: ServiceKey[ProcessMessages] = ServiceKey(s"Process")
 
   def apply(numProcesses: Int,
+            K: Int,
+            M: Int,
             processID: Int,
             guardRef: ActorRef[GuardActor.Command],
             writerRef: ActorRef[LogWriter.WriterMessages]): Behavior[ProcessMessages] = {
 
-    val bloomClock: List[Int] = List.fill(Math.ceil(numProcesses * BLOOM_CLOCK_LENGTH_RATIO).toInt)(0)
+    val bloomClock: List[Int] = List.fill(M)(0)
     val vectorClock: List[Int] = List.fill(numProcesses)(0)
     logger.info(s"Process Starting: $processID")
     Behaviors.setup { context: ActorContext[ProcessMessages] =>
       context.system.receptionist ! Receptionist.Register(ProcessKey, context.self)
-      new ProcessActor(context, guardRef, writerRef)
+      new ProcessActor(context, guardRef, writerRef, numProcesses, K, M)
         .idleProcess(processID, bloomClock, vectorClock, 0, None)
     }
 
@@ -80,14 +86,17 @@ object ProcessActor extends LazyLogging {
 
 class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
                    guardActor: ActorRef[GuardActor.Command],
-                   writingActor: ActorRef[LogWriter.WriterMessages]) {
+                   writingActor: ActorRef[LogWriter.WriterMessages],
+                   numProcesses: Int,
+                   K: Int,
+                   M: Int) {
 
   import ProcessActor._
   import LogWriter.WriteToFile
 
   val listingAdapter: ActorRef[Receptionist.Listing] =
     context.messageAdapter { listing =>
-      //context.log.debug(s"listingAdapter:listing: ${listing.toString}")
+      context.log.debug(s"listingAdapter:listing: ${listing.toString}")
       ListingResponse(listing)
     }
 
@@ -110,7 +119,7 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
 
       case ExecuteSomething =>
         context.log.debug("Executing Something")
-        val res = randomExec(probabilities)
+        val res = randomExec(finalProbabilities)
         implicit val timeout: Timeout = Timeout(1.seconds)
         res.toLowerCase match {
 
@@ -171,11 +180,11 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
           val newEventCounter = eventCounter + 1
           context.log.debug(s"Incrementing Process Event (send) counter to $newEventCounter, GSN: $gsnValue")
           val newVC = performVCRules(vectorClock, processID, RULE_1)
-          val newBC = performBCRules(bloomClock, processID, newEventCounter, SEND_EVENT)
-          if (gsnValue.gsn % 100 == 0)
+          val newBC = performBCRules(bloomClock, processID, eventCounter, SEND_EVENT)
+          if (gsnValue.gsn % 10000 == 0)
             context.log.info(s"Sending Process: $processID got a new VC, VC: ${newVC.toString}, BC: ${newBC.toString}")
           whom ! RecvMessage(newVC, newBC)
-          writingActor ! WriteToFile(s"${gsnValue.gsn}; SEND; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}\n")
+          writingActor ! WriteToFile(s"${gsnValue.gsn}; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}; SEND\n")
           idleProcess(processID, newBC, newVC, newEventCounter, processRefs)
         } else {
           idleProcess(processID, bloomClock, vectorClock, eventCounter, processRefs)
@@ -188,10 +197,10 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
           val newEventCounter = eventCounter + 1
           context.log.debug(s"Incrementing process Event (receive) counter to $newEventCounter, GSN: $gsnValue")
           val newVC = performVCRules(vectorClock, processID, RULE_2, receivedVectorClock)
-          val newBC = performBCRules(bloomClock, processID, newEventCounter, RECV_EVENT, receivedBloomClock)
-          if (gsnValue.gsn % 100 == 0)
+          val newBC = performBCRules(bloomClock, processID, eventCounter, RECV_EVENT, receivedBloomClock)
+          if (gsnValue.gsn % 10000 == 0)
             context.log.info(s"recv Process: $processID got a new VC, VC: ${newVC.toString}, BC: ${newBC.toString}")
-          writingActor ! WriteToFile(s"${gsnValue.gsn}; RECV; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}\n")
+          writingActor ! WriteToFile(s"${gsnValue.gsn}; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}; RECV\n")
           idleProcess(processID, newBC, newVC, newEventCounter, processRefs)
         }
         else
@@ -204,10 +213,10 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
           val newEventCounter = eventCounter + 1
           context.log.debug(s"Incrementing Process Event (Internal) counter to $newEventCounter, GSN: $gsnValue")
           val newVC = performVCRules(vectorClock, processID, RULE_1)
-          val newBC = performBCRules(bloomClock, processID, newEventCounter, INTERNAL_EVENT)
-          if (gsnValue.gsn % 100 == 0)
+          val newBC = performBCRules(bloomClock, processID, eventCounter, INTERNAL_EVENT)
+          if (gsnValue.gsn % 10000 == 0)
             context.log.info(s"Internal Event Process: $processID got a new VC, VC: ${newVC.toString}, BC: ${newBC.toString}")
-          writingActor ! WriteToFile(s"${gsnValue.gsn}; INTR; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}\n")
+          writingActor ! WriteToFile(s"${gsnValue.gsn}; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}; INTR\n")
           idleProcess(processID, newBC, newVC, newEventCounter, processRefs)
         } else {
           idleProcess(processID, bloomClock, vectorClock, eventCounter, processRefs)
@@ -258,28 +267,37 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
   }
 
   def performBCRules(bloomClock: List[Int],
-                     i: Int, x: Int,
+                     i: Int,
+                     x: Int,
                      ruleID: Int,
                      bloomClockReceived: List[Int] = List.empty): List[Int] = {
-    val m = bloomClock.length
+    val m = M
     val hashSeeds = List(SEED_1, SEED_2, SEED_3, SEED_4)
     val hashing_tuple = (i, x)
-    val hashValues = (1 to K).map(k => mmh3.productHash(hashing_tuple, hashSeeds(k))).toList
-    val bloomCounters = hashValues.map(hashValue => Math.abs(hashValue % m))
+    val hashValues = (1 to K).map(k => mmh3.productHash(hashing_tuple, hashSeeds(k - 1))).toList
+    val bloomCounters = hashValues.map(hashValue => (hashValue & 0x7fffffff) % m)
+    context.log.debug(s"${hashValues.length} + ${bloomCounters.toString()}")
     ruleID match {
+
       case INTERNAL_EVENT =>
         val newBloomClock = bloomClock.toArray
         bloomCounters.foreach(i => newBloomClock(i) += 1)
+        context.log.debug(s"INT Before: ${bloomClock}, ${bloomClockReceived} After: ${newBloomClock.mkString(",")}, ${hashValues}, ${bloomCounters}")
         newBloomClock.toList
+
       case SEND_EVENT =>
         val newBloomClock = bloomClock.toArray
         bloomCounters.foreach(i => newBloomClock(i) += 1)
+        context.log.debug(s"SEND Before: ${bloomClock}, ${bloomClockReceived} After: ${newBloomClock.mkString(",")}, ${hashValues}, ${bloomCounters}")
         newBloomClock.toList
+
       case RECV_EVENT =>
         val newBloomClock: Array[Int] = bloomClock.zip(bloomClockReceived).map(x => x._1.max(x._2)).toArray
         bloomCounters.foreach(i => newBloomClock(i) += 1)
+        context.log.debug(s"RECV Before: ${bloomClock}, ${bloomClockReceived} After: ${newBloomClock.mkString(",")}, ${hashValues}, ${bloomCounters}")
         newBloomClock.toList
     }
+
   }
 
 
