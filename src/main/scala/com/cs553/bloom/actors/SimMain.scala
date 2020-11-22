@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import SimMain.MainCommand
+import akka.actor.PoisonPill
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
@@ -31,7 +32,7 @@ object SimMain {
       Thread.sleep(15000)
       processActorsRef.foreach(p => p ! ProcessActor.InitProcess)
       Thread.sleep(15000)
-      new SimMain(ctx, n, guardActor, processActorsRef.toList).idle(5.millis)
+      new SimMain(ctx, n, guardActor, processActorsRef.toList).idle(5.millis ,0)
     }
   }
 
@@ -56,22 +57,28 @@ class SimMain(ctx: ActorContext[MainCommand],
 
   import SimMain._
 
-  private def idle(duration: FiniteDuration): Behavior[MainCommand] = {
+  private def idle(duration: FiniteDuration, count: Int): Behavior[MainCommand] = {
     Behaviors.withTimers[MainCommand] { timers =>
       timers.startSingleTimer(Begin, TimeOut, duration)
       ctx.log.debug("Begin wait done")
-      active()
+      ctx.log.debug(count.toString)
+      if(count > (n + 11)) {
+        Thread.sleep(120 * 1000)
+        Behaviors.stopped
+      }else{
+        active(count)
+      }
     }
   }
 
-  private def active(): Behavior[MainCommand] = {
+  private def active(count: Int): Behavior[MainCommand] = {
     import ProcessActor._
     Behaviors.receiveMessage[MainCommand] {
       case Start | TimeOut =>
         ctx.log.debug("timeout came")
         processRef.foreach(p => p ! ExecuteSomething)
         //processRef.foreach(act => act ! ShowInternals)
-        idle(15.millis)
+        idle(60.millis, count + 1)
     }
   }
 

@@ -20,7 +20,7 @@ import scala.util.{Failure, Random, Success}
 */
 object ProcessActor extends LazyLogging {
 
-  val probabilities: Map[Double, String] = TreeMap(0.4 -> "None", 0.9 -> "Send", 0.0 -> "Internal")
+  val probabilities: Map[Double, String] = TreeMap(1.0 -> "Send", 0.0 -> "Internal")
   val probabilitiesNormalized: Map[Double, String] = probabilities.map { case (k, v) =>
     k / probabilities.keys.sum.toDouble -> v
   }
@@ -181,7 +181,7 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
           context.log.debug(s"Incrementing Process Event (send) counter to $newEventCounter, GSN: $gsnValue")
           val newVC = performVCRules(vectorClock, processID, RULE_1)
           val newBC = performBCRules(bloomClock, processID, eventCounter, SEND_EVENT)
-          if (gsnValue.gsn % 10000 == 0)
+          if (gsnValue.gsn % numProcesses == 0)
             context.log.info(s"Sending Process: $processID got a new VC, VC: ${newVC.toString}, BC: ${newBC.toString}")
           whom ! RecvMessage(newVC, newBC)
           writingActor ! WriteToFile(s"${gsnValue.gsn}; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}; SEND\n")
@@ -198,7 +198,7 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
           context.log.debug(s"Incrementing process Event (receive) counter to $newEventCounter, GSN: $gsnValue")
           val newVC = performVCRules(vectorClock, processID, RULE_2, receivedVectorClock)
           val newBC = performBCRules(bloomClock, processID, eventCounter, RECV_EVENT, receivedBloomClock)
-          if (gsnValue.gsn % 10000 == 0)
+          if (gsnValue.gsn % numProcesses == 0)
             context.log.info(s"recv Process: $processID got a new VC, VC: ${newVC.toString}, BC: ${newBC.toString}")
           writingActor ! WriteToFile(s"${gsnValue.gsn}; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}; RECV\n")
           idleProcess(processID, newBC, newVC, newEventCounter, processRefs)
@@ -214,7 +214,7 @@ class ProcessActor(context: ActorContext[ProcessActor.ProcessMessages],
           context.log.debug(s"Incrementing Process Event (Internal) counter to $newEventCounter, GSN: $gsnValue")
           val newVC = performVCRules(vectorClock, processID, RULE_1)
           val newBC = performBCRules(bloomClock, processID, eventCounter, INTERNAL_EVENT)
-          if (gsnValue.gsn % 10000 == 0)
+          if (gsnValue.gsn % numProcesses == 0)
             context.log.info(s"Internal Event Process: $processID got a new VC, VC: ${newVC.toString}, BC: ${newBC.toString}")
           writingActor ! WriteToFile(s"${gsnValue.gsn}; $processID; $newEventCounter; ${newVC.mkString("[", ", ", "]")}; ${newBC.mkString("[", ", ", "]")}; INTR\n")
           idleProcess(processID, newBC, newVC, newEventCounter, processRefs)

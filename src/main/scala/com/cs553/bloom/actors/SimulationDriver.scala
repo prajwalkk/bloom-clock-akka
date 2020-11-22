@@ -1,7 +1,7 @@
 package com.cs553.bloom.actors
 
 import akka.NotUsed
-import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.typed.{ActorSystem, Behavior, Terminated}
 import akka.actor.typed.scaladsl.Behaviors
 import SimMain.Start
 import com.cs553.bloom.utils.ApplicationConstants
@@ -40,18 +40,24 @@ object SimulationDriver extends LazyLogging {
       logger.info(s"===================================starting:(N, K, M) = ${(n, k, (mRat * n).toInt)} ==================")
       // Execute for N + 35 seconds. Taken 60 as a buffer
       // Run for 10 minutes
-      Thread.sleep((3 * 60 * 1000) + (60 * 1000))
+      Await.result(system.whenTerminated, 10.minutes)
       logger.info("====================================terminating========================================================")
-      system.terminate()
+      //system.terminate()
     }
 
   }
 
   object Main {
-    def apply(n: Int, k: Int, m: Int, fileName: String): Behavior[NotUsed] = Behaviors.setup { context =>
-      val simDriver = context.spawn(SimMain(n, k, m, fileName), "SimDriver")
-      simDriver ! Start
-      Behaviors.empty
+    def apply(n: Int, k: Int, m: Int, fileName: String): Behavior[NotUsed] = {
+      Behaviors.setup { context =>
+        val simDriver = context.spawn(SimMain(n, k, m, fileName), "SimDriver")
+        context.watch(simDriver)
+        simDriver ! Start
+        Behaviors.receiveSignal{
+          case (context, Terminated(ref)) =>
+          Behaviors.stopped
+        }
+      }
     }
   }
 
