@@ -62,7 +62,7 @@ class SimMain(ctx: ActorContext[MainCommand],
       timers.startSingleTimer(Begin, TimeOut, duration)
       ctx.log.debug("Begin wait done")
       ctx.log.debug(count.toString)
-      if(count > (n + 11)) {
+      if(count > (2 * n)) {
         Thread.sleep(120 * 1000)
         Behaviors.stopped
       }else{

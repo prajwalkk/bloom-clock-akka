@@ -36,7 +36,7 @@ object SimulationDriver extends LazyLogging {
 
       Thread.sleep(10000)
 
-      val system = ActorSystem(Main(n, k, (mRat * n).toInt, fileName), "applicaion")
+      val system = ActorSystem(Main(n, k, (Math.ceil(mRat * n)).toInt, fileName), "applicaion")
       logger.info(s"===================================starting:(N, K, M) = ${(n, k, (mRat * n).toInt)} ==================")
       // Execute for N + 35 seconds. Taken 60 as a buffer
       // Run for 10 minutes
