@@ -1,6 +1,7 @@
 target/
 sims/
 
+.bsp
 .settings
 .project
 .classpath
