@@ -3,7 +3,7 @@
 This project aims to simulate the working of a bloom clock to study its properties with respect to a traditional vector clocks used in distributed systems.
 
 * The Architecture and Report can be found in the [Report](Bloom_Clock_Report_Prajwal.pdf)
-* All the graphs and the Jupyter notebook used to make some analyses are in this [folder](DataAnalysis)
+* All the graphs and the Jupyter notebook used to make some analyses are in this [repo](https://github.com/prajwalkk/bloom-clock-report)
 
 
 ## Features:
